@@ -26,7 +26,7 @@ This bot can be ran locally or hosted on a server.
 
 <br>
 
-### FeedConfig.json ###
+### Config.json ###
 
 <br>
 
