@@ -1,5 +1,6 @@
 ﻿using Bot;
 using DSharpPlus;
+using DSharpPlus.SlashCommands;
 using System.Text.Json;
 
 const string configPath = "./Config.json";
@@ -30,9 +31,15 @@ using DiscordClient discord = new(new()
 {
 	Token = config.Token,
 	TokenType = TokenType.Bot,
-	Intents = DiscordIntents.MessageContents
+	MinimumLogLevel = Microsoft.Extensions.Logging.LogLevel.Debug
 });
+
+SlashCommandsExtension slash = discord.UseSlashCommands();
+
+slash.RegisterCommands<SlashCommands>();
 
 await discord.ConnectAsync();
 
 Console.WriteLine("Bot Started");
+
+_ = Console.ReadKey();
