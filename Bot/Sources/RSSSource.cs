@@ -4,9 +4,11 @@ using System.Xml.XPath;
 
 namespace Bot.Sources
 {
-	internal sealed partial class RSSSource(DiscordClient client, Data data, Channels channels) : SourceBase(client, data, channels)
+	internal sealed partial class RSSSource : SourceBase
 	{
 		private static XmlNamespaceManager? _manager;
+
+		public RSSSource(DiscordClient client, Data data, Channels channels) : base(client, data, channels) { }
 
 		public override async ValueTask<bool> RunAsync()
 		{

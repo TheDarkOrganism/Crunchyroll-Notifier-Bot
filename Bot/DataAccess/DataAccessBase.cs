@@ -80,7 +80,7 @@ namespace Bot.DataAccess
 
 		private static async Task<int> ExecuteAsync<T>(T? data, string sql)
 		{
-			ArgumentException.ThrowIfNullOrWhiteSpace(sql, nameof(sql));
+			ArgumentException.ThrowIfNullOrEmpty(sql, nameof(sql));
 
 			Task<int>? result = HandleTransaction(transaction => transaction.Connection?.ExecuteAsync(new CommandDefinition(sql, data, transaction)));
 
@@ -92,7 +92,7 @@ namespace Bot.DataAccess
 		{
 			Task<IEnumerable<TModel>>? result = HandleConnection(connection => connection.QueryAsync<TModel>($"select * from {_name}"));
 
-			return result is null || result.IsFaulted ? [] : await result;
+			return result is null || result.IsFaulted ? Enumerable.Empty<TModel>() : await result;
 		}
 
 		public async Task<bool> Contains(TModel model)
