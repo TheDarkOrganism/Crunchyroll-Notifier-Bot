@@ -15,22 +15,14 @@ try
 
 	if (c is null || string.IsNullOrWhiteSpace(c.Token))
 	{
-		Console.WriteLine("Missing Token");
-
-		_ = Console.ReadKey();
-
-		return;
+		throw new Exception("Missing Token");
 	}
 
 	config = c;
 }
 catch
 {
-	Console.WriteLine($"Unable to read token from \"{configPath}\"");
-
-	_ = Console.ReadKey();
-
-	return;
+	throw new Exception($"Unable to read token from \"{configPath}\"");
 }
 
 using DiscordClient discord = new(new()
