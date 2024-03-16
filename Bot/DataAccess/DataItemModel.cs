@@ -1,4 +1,9 @@
 ﻿namespace Bot.DataAccess
 {
-	internal sealed record DataItemModel(string Name, string Value) { }
+	internal sealed class DataItemModel
+	{
+		public required string Name { get; init; }
+
+		public required string Value { get; init; }
+	}
 }

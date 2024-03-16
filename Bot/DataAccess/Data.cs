@@ -8,7 +8,11 @@
 
 		public async ValueTask<bool> SetLast(DateTime dateTime)
 		{
-			return await SaveModelAsync(new("LastCheck", dateTime.ToString()));
+			return await SaveModelAsync(new()
+			{
+				Name = "LastCheck",
+				Value = dateTime.ToString()
+			});
 		}
 
 		private async ValueTask<DataItemModel?> GetModel(string name)

@@ -19,7 +19,10 @@ namespace Bot
 
 			ulong channelId = channel.Id;
 
-			ChannelModel model = new(channelId);
+			ChannelModel model = new()
+			{
+				Id = channelId
+			};
 
 			return (await func(model), string.Join('@', channel.Name, channelId));
 		}

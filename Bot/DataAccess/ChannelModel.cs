@@ -1,4 +1,7 @@
 ﻿namespace Bot.DataAccess
 {
-	internal sealed record ChannelModel(ulong Id) { }
+	internal sealed class ChannelModel
+	{
+		public required ulong Id { get; init; }
+	}
 }
