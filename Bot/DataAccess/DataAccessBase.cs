@@ -1,17 +1,9 @@
 ﻿using Dapper;
-using DSharpPlus.Entities;
-using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Data.Common;
 using System.Data.SQLite;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Bot.DataAccess
 {
-	internal abstract class DataAccessBase<TModel>
+	public abstract class DataAccessBase<TModel>
 	{
 		private readonly string _name;
 
@@ -40,7 +32,7 @@ namespace Bot.DataAccess
 			_saveSql = $"insert into {name} ({string.Join(", ", properties)}) values({string.Join(", ", properties.Select(p => $"@{p}"))})";
 
 			_primaryKeySql = $" where {PrimaryKey} = {$"@{PrimaryKey}"}";
-			
+
 			_deleteSql = $"delete from {name}{_primaryKeySql}";
 		}
 

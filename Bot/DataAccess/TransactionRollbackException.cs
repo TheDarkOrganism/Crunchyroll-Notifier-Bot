@@ -1,11 +1,9 @@
-﻿using System.Data;
-
-namespace Bot.DataAccess
+﻿namespace Bot.DataAccess
 {
 	/// <summary>
 	/// Represents errors that occur during a <see cref="IDbTransaction.Rollback"/>.
 	/// </summary>
-	public sealed class TransactionRollbackException : InvalidOperationException
+	internal sealed class TransactionRollbackException : InvalidOperationException
 	{
 		/// <summary>
 		/// Creates a new <see cref="TransactionRollbackException"/>
