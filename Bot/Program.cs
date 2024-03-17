@@ -1,4 +1,6 @@
-﻿using AppRunner runner = new();
+﻿using Bot.DataAccess;
+
+using AppRunner runner = new();
 
 await runner.Run("./Config.json", new Channels(), new Data());
 
