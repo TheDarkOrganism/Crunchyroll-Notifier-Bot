@@ -1,6 +1,6 @@
 ﻿namespace Bot.DataAccess
 {
-	internal sealed class Channels : DataAccessBase<ChannelModel>
+	internal sealed class Channels : DataAccessBase<ChannelModel>, IChannelStorageManager
 	{
 		protected override string PrimaryKey => nameof(ChannelModel.Id);
 

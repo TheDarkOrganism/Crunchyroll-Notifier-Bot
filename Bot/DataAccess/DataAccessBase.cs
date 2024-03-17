@@ -3,11 +3,12 @@ using System.Data.SQLite;
 
 namespace Bot.DataAccess
 {
-	public abstract class DataAccessBase<TModel>
+	public abstract class DataAccessBase<TModel> : IStorageManagerBase<TModel>
+		where TModel : notnull, IEquatable<TModel>
 	{
 		private readonly string _name;
 
-		private const string _dataSource = "./Database.db";
+		private readonly string _dataSource;
 
 		private readonly string _saveSql;
 
@@ -15,17 +16,25 @@ namespace Bot.DataAccess
 
 		private readonly string _primaryKeySql;
 
-		private static readonly string _connectionString = new SQLiteConnectionStringBuilder()
-		{
-			DataSource = _dataSource,
-			Version = 3
-		}.ConnectionString;
+		private readonly string _connectionString;
+
+		protected readonly List<TModel> _models;
 
 		protected abstract string PrimaryKey { get; }
 
 		protected DataAccessBase(string name)
 		{
 			_name = name;
+
+			_dataSource = $"./Database.db";
+
+			_connectionString = new SQLiteConnectionStringBuilder()
+			{
+				DataSource = _dataSource,
+				Version = 3
+			}.ConnectionString;
+
+			_models = new();
 
 			IEnumerable<string> properties = typeof(TModel).GetProperties().Select(p => p.Name);
 
@@ -36,7 +45,7 @@ namespace Bot.DataAccess
 			_deleteSql = $"delete from {name}{_primaryKeySql}";
 		}
 
-		private static T? HandleConnection<T>(DatabaseHandler<IDbConnection, T> handler)
+		private T? HandleConnection<T>(DatabaseHandler<IDbConnection, T> handler)
 		{
 			using SQLiteConnection connection = new()
 			{
@@ -46,7 +55,7 @@ namespace Bot.DataAccess
 			return File.Exists(_dataSource) ? handler(connection) : default;
 		}
 
-		private static T? HandleTransaction<T>(DatabaseHandler<IDbTransaction, T> handler)
+		private T? HandleTransaction<T>(DatabaseHandler<IDbTransaction, T> handler)
 		{
 			return HandleConnection(connection =>
 			{
@@ -78,7 +87,7 @@ namespace Bot.DataAccess
 			});
 		}
 
-		private static async Task<int> ExecuteAsync<T>(T? data, string sql)
+		private async Task<int> ExecuteAsync<T>(T? data, string sql)
 		{
 			ArgumentException.ThrowIfNullOrEmpty(sql, nameof(sql));
 
@@ -95,19 +104,41 @@ namespace Bot.DataAccess
 			return result is null || result.IsFaulted ? Enumerable.Empty<TModel>() : await result;
 		}
 
-		public async Task<bool> Contains(TModel model)
-		{
-			return await ExecuteAsync(model, $"select * from {_name}{_primaryKeySql}") > 0;
-		}
-
 		public async Task<bool> SaveModelAsync(TModel model)
 		{
 			return await ExecuteAsync(model, _saveSql) > 0;
 		}
 
-		public async Task<bool> DeleteModelAsync(TModel model)
+		public bool Set(TModel model)
 		{
-			return await ExecuteAsync(model, _deleteSql) > 0;
+			if (!_models.Contains(model))
+			{
+				_models.Add(model);
+
+				return true;
+			}
+			else
+			{
+				return false;
+			}
+		}
+
+		public bool Delete(TModel model)
+		{
+			return _models.Remove(model);
+		}
+
+		public IEnumerable<TModel> GetAll()
+		{
+			return _models;
+		}
+
+		public async ValueTask FlushAsync()
+		{
+			foreach (TModel model in _models.Except(await GetModelsAsync()))
+			{
+				_ = await SaveModelAsync(model);
+			}
 		}
 	}
 }

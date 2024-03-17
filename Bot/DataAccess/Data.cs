@@ -1,28 +1,35 @@
 ﻿namespace Bot.DataAccess
 {
-	internal sealed class Data : DataAccessBase<DataItemModel>
+	internal sealed class Data : DataAccessBase<DataItemModel>, IDataStorageManager
 	{
 		public Data() : base(nameof(Data)) { }
 
 		protected override string PrimaryKey => nameof(DataItemModel.Name);
 
-		public async ValueTask<bool> SetLast(DateTime dateTime)
+		private DataItemModel? GetModel(string name)
 		{
-			return await SaveModelAsync(new()
+			return _models.FirstOrDefault(item => item.Name == name);
+		}
+
+		public void SetLast(DateTime dateTime)
+		{
+			DataItemModel? itemModel = GetModel("LastCheck");
+
+			if (itemModel is not null)
+			{
+				_models.Remove(itemModel);
+			}
+
+			_models.Add(new()
 			{
 				Name = "LastCheck",
 				Value = dateTime.ToString()
 			});
 		}
 
-		private async ValueTask<DataItemModel?> GetModel(string name)
+		public DateTime? GetLast()
 		{
-			return (await GetModelsAsync()).FirstOrDefault(item => item.Name == name);
-		}
-
-		public async ValueTask<DateTime?> GetLast()
-		{
-			return DateTime.TryParse((await GetModel("LastCheck"))?.Value, out DateTime result) ? result : null;
+			return DateTime.TryParse(GetModel("LastCheck")?.Value, out DateTime result) ? result : null;
 		}
 	}
 }
