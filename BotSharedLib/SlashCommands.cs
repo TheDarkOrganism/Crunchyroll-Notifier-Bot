@@ -1,6 +1,4 @@
-﻿using BotSharedLib.Models;
-using DSharpPlus.CommandsNext.Attributes;
-using DSharpPlus.Entities;
+﻿using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.SlashCommands;
 
 namespace BotSharedLib

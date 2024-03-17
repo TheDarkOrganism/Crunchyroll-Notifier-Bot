@@ -1,6 +1,4 @@
-﻿using BotSharedLib.Models;
-using BotSharedLib.Sources;
-using DSharpPlus;
+﻿using BotSharedLib.Sources;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.SlashCommands;
 using Microsoft.Extensions.DependencyInjection;

@@ -12,6 +12,12 @@
 		<Copyright>2024</Copyright>
 	</PropertyGroup>
 
+	<ItemGroup>
+		<Using Include="BotSharedLib.Models" />
+		<Using Include="DSharpPlus" />
+		<Using Include="DSharpPlus.Entities" />
+	</ItemGroup>
+
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
 		<DebugType>none</DebugType>
 	</PropertyGroup>

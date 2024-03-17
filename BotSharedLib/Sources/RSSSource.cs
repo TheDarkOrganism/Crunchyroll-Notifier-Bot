@@ -1,6 +1,5 @@
-﻿using DSharpPlus;
+﻿using System.Text.RegularExpressions;
 using System.Xml;
-using System.Text.RegularExpressions;
 using System.Xml.XPath;
 
 namespace BotSharedLib.Sources

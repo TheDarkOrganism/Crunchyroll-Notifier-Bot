@@ -1,8 +1,4 @@
-﻿using BotSharedLib.Models;
-using DSharpPlus;
-using DSharpPlus.Entities;
-
-namespace BotSharedLib.Sources
+﻿namespace BotSharedLib.Sources
 {
 	internal abstract class SourceBase
 	{
