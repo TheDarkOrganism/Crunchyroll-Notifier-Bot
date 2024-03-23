@@ -47,7 +47,7 @@ Permissions required when creating the bot in the [Discord Developer Portal](htt
 
 <br>
 
-**Token**: The bot token used by the program to connecct with discord.<br>
+**Token**: The bot token used by the program to connect with discord.<br>
 **Type**: String<br>
 **Required**: Yes<br>
 
