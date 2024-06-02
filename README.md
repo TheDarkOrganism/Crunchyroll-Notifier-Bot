@@ -26,6 +26,11 @@ This bot can be ran locally or hosted on a server.
 
 <br>
 
+In order for the bot to show notifications you need to allow "Send Messages"<br>
+for the channel you want notifications in.
+
+<br>
+
 ### Bot Permissions ###
 
 <br>
@@ -34,11 +39,7 @@ Permissions required when creating the bot in the [Discord Developer Portal](htt
 
 <ul>
     <li>bot</li>
-    <li>applications.commands</li>
-    <li>Send Messages</li>
-    <li>Manage Channels</li>
     <li>Embed Links</li>
-    <li>Use Slash Commands</li>
 </ul>
 
 <br>
