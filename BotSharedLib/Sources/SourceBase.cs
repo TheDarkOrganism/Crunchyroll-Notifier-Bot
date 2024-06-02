@@ -1,16 +1,17 @@
-﻿namespace BotSharedLib.Sources
+﻿using BotSharedLib.Models;
+
+namespace BotSharedLib.Sources
 {
 	internal abstract class SourceBase
 	{
-		protected readonly IDataStorageManager _data;
-		private readonly IChannelStorageManager _channels;
 		private readonly DiscordClient _client;
 
-		protected SourceBase(DiscordClient client, IDataStorageManager data, IChannelStorageManager channels)
+		protected DateTime _last;
+
+		protected SourceBase(DiscordClient client)
 		{
 			_client = client;
-			_data = data;
-			_channels = channels;
+			_last = DateTime.Now;
 		}
 
 		public abstract ValueTask<bool> RunAsync();
@@ -33,41 +34,29 @@
 
 			_ = builder.AddField("Episode", notification.Episode.ToString(), true);
 
-			foreach (ChannelModel channelModel in _channels.GetAll())
+			foreach (DiscordGuild guild in _client.Guilds.Values)
 			{
-				try
+				foreach ((ulong id, DiscordChannel channel) in guild.Channels)
 				{
-					DiscordChannel channel = await _client.GetChannelAsync(channelModel.Id);
+					foreach (DiscordOverwrite channelOverride in channel.PermissionOverwrites)
+					{
+						if (channelOverride.Allowed == Permissions.SendMessages && channelOverride.Type == OverwriteType.Member && (await channelOverride.GetMemberAsync()) == _client.CurrentUser)
+						{
+							try
+							{
+								Console.WriteLine($"Sending notification {notification} to {string.Join('@', channel.Name, id)}");
 
-					Console.WriteLine($"Sending notification {notification} to {string.Join('@', channel.Name, channelModel.Id)}");
+								await channel.SendMessageAsync(builder);
+							}
+							catch
+							{
+								Console.WriteLine($"Uanable to find notify channel with id {id}");
+							}
 
-					await channel.SendMessageAsync(builder);
+							break;
+						}
+					}
 				}
-				catch
-				{
-
-					Console.WriteLine($"Uanable to find notify channel with id {channelModel.Id}");
-				}
-			}
-		}
-
-		protected async ValueTask<DateTime> GetLastAsync()
-		{
-			DateTime? old = _data.GetLast();
-
-			DateTime now = DateTime.Now;
-
-			if (old is null)
-			{
-				_data.SetLast(now);
-
-				await _data.FlushAsync();
-
-				return now;
-			}
-			else
-			{
-				return old ?? now;
 			}
 		}
 	}

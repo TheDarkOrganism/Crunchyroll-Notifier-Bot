@@ -8,7 +8,7 @@ namespace BotSharedLib.Sources
 	{
 		private static XmlNamespaceManager? _manager;
 
-		public RSSSource(DiscordClient client, IDataStorageManager data, IChannelStorageManager channels) : base(client, data, channels) { }
+		public RSSSource(DiscordClient client) : base(client) { }
 
 		public override async ValueTask<bool> RunAsync()
 		{
@@ -24,13 +24,11 @@ namespace BotSharedLib.Sources
 				_manager.AddNamespace("crunchyroll", "http://www.crunchyroll.com/rss");
 			}
 
-			DateTime last = await GetLastAsync();
-
-			DateTime copy = last;
+			DateTime copy = _last;
 
 			foreach (XPathNavigator nav in navigator.Select($"//item").OfType<XPathNavigator>().Reverse())
 			{
-				if (DateTime.TryParse(nav.SelectSingleNode(".//pubDate", _manager)?.Value, out DateTime result) && result > last)
+				if (DateTime.TryParse(nav.SelectSingleNode(".//pubDate", _manager)?.Value, out DateTime result) && result > _last)
 				{
 					string? dub = nav.SelectSingleNode(".//title", _manager)?.Value is string title ? DubRegex().Match(title).Groups.Values.ElementAtOrDefault(1)?.Value : null;
 
@@ -51,22 +49,11 @@ namespace BotSharedLib.Sources
 						await SendNotificationsAsync(new(showText, url, season, episode.GetValueOrDefault(), thumbnail ?? "", description, result));
 					}
 
-					last = result;
+					_last = result;
 				}
 			}
 
-			if (copy != last)
-			{
-				_data.SetLast(last);
-
-				await _data.FlushAsync();
-
-				return true;
-			}
-			else
-			{
-				return false;
-			}
+			return copy != _last;
 		}
 
 		[GeneratedRegex("\\(([A-Za-z\\-]+) Dub\\)")]

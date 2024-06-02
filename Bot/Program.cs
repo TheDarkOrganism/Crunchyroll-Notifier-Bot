@@ -1,7 +1,5 @@
-﻿using Bot.DataAccess;
+﻿using AppRunner runner = new();
 
-using AppRunner runner = new();
-
-await runner.Run("./Config.json", new Channels(), new Data());
+await runner.Run("./Config.json");
 
 await Task.Delay(-1);

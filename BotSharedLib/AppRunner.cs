@@ -9,13 +9,14 @@ namespace BotSharedLib
 	public sealed class AppRunner : IDisposable
 	{
 		private DiscordClient? _discordClient = null;
+		private static readonly TimeSpan _interval = TimeSpan.FromMinutes(1);
 
 		public void Dispose()
 		{
 			_discordClient?.Dispose();
 		}
 
-		public async ValueTask Run(string configPath, IChannelStorageManager channel, IDataStorageManager data)
+		public async ValueTask Run(string configPath)
 		{
 			ArgumentException.ThrowIfNullOrEmpty(configPath, nameof(configPath));
 
@@ -27,28 +28,37 @@ namespace BotSharedLib
 
 				if (c is null || string.IsNullOrWhiteSpace(c.Token))
 				{
-					throw new Exception("Missing Token");
+					Console.Write("Missing Token");
+
+					await Task.Delay(TimeSpan.FromSeconds(30));
+
+					Environment.Exit(0);
 				}
 
 				config = c;
 			}
 			catch
 			{
-				throw new Exception($"Unable to read token from \"{configPath}\"");
+				Console.Write($"Unable to read token from \"{configPath}\"");
+
+				await Task.Delay(TimeSpan.FromSeconds(30));
+
+				Environment.Exit(0);
+
+				return;
 			}
 
 			_discordClient = new(new()
 			{
 				Token = config.Token,
 				TokenType = TokenType.Bot,
-				MinimumLogLevel = Microsoft.Extensions.Logging.LogLevel.Debug
+				MinimumLogLevel = Microsoft.Extensions.Logging.LogLevel.Debug,
+				ReconnectIndefinitely = true
 			});
 
 			ServiceCollection services = new();
 
 			services.AddSingleton(_discordClient);
-			services.AddSingleton(channel);
-			services.AddSingleton(data);
 			services.AddSingleton<RSSSource>();
 
 			ServiceProvider provider = services.BuildServiceProvider();
@@ -63,8 +73,6 @@ namespace BotSharedLib
 				Services = provider
 			});
 
-			slash.RegisterCommands<SlashCommands>();
-
 			_discordClient.Ready += async (client, readArgs) =>
 			{
 				RSSSource? rss = provider.GetService<RSSSource>();
@@ -74,7 +82,7 @@ namespace BotSharedLib
 					return;
 				}
 
-				using PeriodicTimer timer = new(TimeSpan.FromMinutes(1));
+				using PeriodicTimer timer = new(_interval);
 
 				try
 				{
