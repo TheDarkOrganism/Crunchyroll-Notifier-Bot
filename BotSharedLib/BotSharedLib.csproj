@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFramework>net7.0</TargetFramework>
@@ -16,6 +16,9 @@
 		<Using Include="BotSharedLib.Models" />
 		<Using Include="DSharpPlus" />
 		<Using Include="DSharpPlus.Entities" />
+		<Using Include="Microsoft.Extensions.Logging" />
+		<Using Include="System.Text.Json" />
+		<Using Include="System.Text.Json.Serialization" />
 	</ItemGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
@@ -26,6 +29,9 @@
 		<PackageReference Include="DSharpPlus" Version="4.4.6" />
 		<PackageReference Include="DSharpPlus.CommandsNext" Version="4.4.6" />
 		<PackageReference Include="DSharpPlus.SlashCommands" Version="4.4.6" />
+		<PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
+		<PackageReference Include="System.Net.Security" Version="4.3.2" />
 	</ItemGroup>
 
 </Project>

@@ -1,16 +1,16 @@
-﻿using BotSharedLib.Models;
-
-namespace BotSharedLib.Sources
+﻿namespace BotSharedLib.Sources
 {
 	internal abstract class SourceBase
 	{
 		private readonly DiscordClient _client;
+		private readonly ILogger<SourceBase> _logger;
 
 		protected DateTime _last;
 
-		protected SourceBase(DiscordClient client)
+		protected SourceBase(DiscordClient client, ILogger<SourceBase> logger)
 		{
 			_client = client;
+			_logger = logger;
 			_last = DateTime.Now;
 		}
 
@@ -44,13 +44,13 @@ namespace BotSharedLib.Sources
 						{
 							try
 							{
-								Console.WriteLine($"Sending notification {notification} to {string.Join('@', channel.Name, id)}");
+								_logger.LogDebug("Sending notification {Notification} to {Name}@{ID}", notification, channel.Name, id);
 
 								await channel.SendMessageAsync(builder);
 							}
 							catch
 							{
-								Console.WriteLine($"Uanable to find notify channel with id {id}");
+								_logger.LogDebug("Uanable to find notify channel with id {ID}", id);
 							}
 
 							break;

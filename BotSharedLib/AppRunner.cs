@@ -1,19 +1,36 @@
-﻿using BotSharedLib.Sources;
+﻿using BotSharedLib.Converters;
+using BotSharedLib.Sources;
 using DSharpPlus.CommandsNext;
-using DSharpPlus.SlashCommands;
 using Microsoft.Extensions.DependencyInjection;
-using System.Text.Json;
 
 namespace BotSharedLib
 {
 	public sealed class AppRunner : IDisposable
 	{
-		private DiscordClient? _discordClient = null;
-		private static readonly TimeSpan _interval = TimeSpan.FromMinutes(1);
+		private static readonly TimeSpan _errorExitDelay = TimeSpan.FromSeconds(30);
 
-		public void Dispose()
+		private static readonly JsonSerializerOptions _jsonSerializerOptions = new()
 		{
-			_discordClient?.Dispose();
+			Converters = {
+				new EnumConverter(),
+				new TimeSpanConverter()
+			}
+		};
+
+		private readonly List<DiscordClient> _discordClients = new();
+
+		private readonly ILogger<AppRunner> _errorLogger;
+
+		private static void ConfigureLogger(ILoggingBuilder builder, LogLevel logLevel)
+		{
+			builder.AddConsole().SetMinimumLevel(logLevel);
+		}
+
+		public AppRunner()
+		{
+			using ILoggerFactory loggerFactory = LoggerFactory.Create(builder => ConfigureLogger(builder, LogLevel.Critical));
+
+			_errorLogger = loggerFactory.CreateLogger<AppRunner>();
 		}
 
 		public async ValueTask Run(string configPath)
@@ -24,56 +41,84 @@ namespace BotSharedLib
 
 			try
 			{
-				Config? c = JsonSerializer.Deserialize<Config>(await File.ReadAllTextAsync(configPath));
+				Config? c = JsonSerializer.Deserialize<Config>(await File.ReadAllTextAsync(configPath), _jsonSerializerOptions);
 
 				if (c is null || string.IsNullOrWhiteSpace(c.Token))
 				{
-					Console.Write("Missing Token");
+					_errorLogger.LogCritical("Missing Token");
 
-					await Task.Delay(TimeSpan.FromSeconds(30));
+					await Task.Delay(_errorExitDelay);
 
 					Environment.Exit(0);
 				}
 
 				config = c;
 			}
+			catch (FileNotFoundException ex)
+			{
+				_errorLogger.LogCritical(ex, "Unable to find the config file at \"{Config}\"", configPath);
+
+				await Task.Delay(_errorExitDelay);
+
+				Environment.Exit(2);
+
+				return;
+			}
+			catch (JsonException ex)
+			{
+				_errorLogger.LogCritical(ex, "The config file at \"{Config}\" was invalid", configPath);
+
+				await Task.Delay(_errorExitDelay);
+
+				Environment.Exit(13);
+
+				return;
+			}
 			catch
 			{
-				Console.Write($"Unable to read token from \"{configPath}\"");
+				_errorLogger.LogCritical("Unable to read token from \"{Config}\"", configPath);
 
-				await Task.Delay(TimeSpan.FromSeconds(30));
+				await Task.Delay(_errorExitDelay);
 
-				Environment.Exit(0);
+				Environment.Exit(13);
 
 				return;
 			}
 
-			_discordClient = new(new()
+			LogLevel logLevel = config.LogLevel;
+
+			DiscordClient discordClient = new(new()
 			{
 				Token = config.Token,
 				TokenType = TokenType.Bot,
-				MinimumLogLevel = Microsoft.Extensions.Logging.LogLevel.Debug,
+				MinimumLogLevel = logLevel,
 				ReconnectIndefinitely = true
 			});
 
+			_discordClients.Add(discordClient);
+
 			ServiceCollection services = new();
 
-			services.AddSingleton(_discordClient);
+			services.AddLogging(builder => ConfigureLogger(builder, logLevel));
+
+			services.AddSingleton(discordClient);
 			services.AddSingleton<RSSSource>();
 
 			ServiceProvider provider = services.BuildServiceProvider();
 
-			_discordClient.UseCommandsNext(new()
+			discordClient.UseCommandsNext(new()
 			{
 				Services = provider
 			});
 
-			SlashCommandsExtension slash = _discordClient.UseSlashCommands(new()
-			{
-				Services = provider
-			});
+			ILogger<AppRunner>? logger = provider.GetService<ILogger<AppRunner>>();
 
-			_discordClient.Ready += async (client, readArgs) =>
+			if (logger is null)
+			{
+				return;
+			}
+
+			discordClient.Ready += async (client, readArgs) =>
 			{
 				RSSSource? rss = provider.GetService<RSSSource>();
 
@@ -82,13 +127,13 @@ namespace BotSharedLib
 					return;
 				}
 
-				using PeriodicTimer timer = new(_interval);
+				using PeriodicTimer timer = new(config.Interval);
 
 				try
 				{
 					while (await timer.WaitForNextTickAsync())
 					{
-						Console.WriteLine("Checking for notifications...");
+						logger.LogInformation("Checking for notifications...");
 
 						try
 						{
@@ -96,11 +141,11 @@ namespace BotSharedLib
 
 							if (found)
 							{
-								Console.WriteLine("Found notifications");
+								logger.LogInformation("Found notifications");
 							}
 							else
 							{
-								Console.WriteLine("No notifications found");
+								logger.LogInformation("No notifications found");
 							}
 						}
 						catch
@@ -112,9 +157,17 @@ namespace BotSharedLib
 				catch { }
 			};
 
-			await _discordClient.ConnectAsync();
+			await discordClient.ConnectAsync();
 
-			Console.WriteLine("Bot Started");
+			logger.LogInformation("Bot Started");
+		}
+
+		public void Dispose()
+		{
+			foreach (DiscordClient discordClient in _discordClients)
+			{
+				discordClient.Dispose();
+			}
 		}
 	}
 }

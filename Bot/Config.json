@@ -1,3 +1,5 @@
 {
+	"Interval": 60,
+	"LogLevel": "Information",
 	"Token": ""
 }
