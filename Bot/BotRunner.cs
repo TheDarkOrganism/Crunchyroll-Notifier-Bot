@@ -18,10 +18,18 @@ namespace Bot
 		};
 
 		private readonly ILogger<BotRunner> _logger;
+		private readonly TimeSpan _interval;
 
-		public BotRunner(ILogger<BotRunner> logger)
+		public BotRunner(Config config)
 		{
-			_logger = logger;
+			LogLevel logLevel = config.LogLevel;
+
+			using (ILoggerFactory loggerFactory = LoggerFactory.Create(builder => builder.AddConsole().SetMinimumLevel(logLevel)))
+			{
+				_logger = loggerFactory.CreateLogger<BotRunner>();
+			}
+
+			_interval = config.Interval;
 		}
 	}
 }
