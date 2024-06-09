@@ -1,5 +1,6 @@
-﻿using AppRunner runner = new();
+﻿ILogger<Program> logger;
 
-await runner.Run("./Config.json");
-
-await Task.Delay(-1);
+using (ILoggerFactory loggerFactory = LoggerFactory.Create(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Critical)))
+{
+	logger = loggerFactory.CreateLogger<Program>();
+}

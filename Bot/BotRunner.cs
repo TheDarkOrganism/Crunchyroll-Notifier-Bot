@@ -16,5 +16,12 @@ namespace Bot
 				new TimeSpanConverter()
 			}
 		};
+
+		private readonly ILogger<BotRunner> _logger;
+
+		public BotRunner(ILogger<BotRunner> logger)
+		{
+			_logger = logger;
+		}
 	}
 }
