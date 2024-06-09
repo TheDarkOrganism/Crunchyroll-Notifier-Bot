@@ -67,4 +67,8 @@ catch
 	return;
 }
 
-BotRunner botRunner = new(config);
+using BotRunner botRunner = new(config);
+
+await botRunner.RunAsync();
+
+await Task.Delay(-1);
