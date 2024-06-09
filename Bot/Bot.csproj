@@ -17,6 +17,8 @@
 		<Using Include="BotSharedLib" />
 		<Using Include="BotSharedLib.Models" />
 		<Using Include="System.Data" />
+		<Using Include="System.Text.Json" />
+		<Using Include="System.Text.Json.Serialization" />
 	</ItemGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
