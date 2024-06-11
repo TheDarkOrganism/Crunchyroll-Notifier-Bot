@@ -48,6 +48,19 @@ Permissions required when creating the bot in the [Discord Developer Portal](htt
 
 <br>
 
+**Interval**: How often to check for new episodes in seconds.<br>
+**Type**: Double<br>
+**Condition**: Must be greater than or equal to 10.<br>
+**Required**: Yes<br>
+
+<br>
+
+**LogLevel**: The minimum level of type of logs to display in the bot output.<br>
+**Type**: Enum<br>
+**Required**: Yes<br>
+
+<br>
+
 **Token**: The bot token used by the program to connect with discord.<br>
 **Type**: String<br>
 **Required**: Yes<br>
