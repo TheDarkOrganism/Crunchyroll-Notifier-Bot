@@ -3,6 +3,7 @@ using Bot.Converters;
 
 const string _configPath = "./Config.json";
 TimeSpan _errorExitDelay = TimeSpan.FromSeconds(30);
+const int _minInterval = 10;
 
 JsonSerializerOptions _jsonSerializerOptions = new()
 {
@@ -19,22 +20,38 @@ using (ILoggerFactory loggerFactory = LoggerFactory.Create(builder => builder.Ad
 	logger = loggerFactory.CreateLogger<Program>();
 }
 
-Config config;
+Config? config;
 
 try
 {
-	Config? c = JsonSerializer.Deserialize<Config>(await File.ReadAllTextAsync(_configPath), _jsonSerializerOptions);
+	config = JsonSerializer.Deserialize<Config>(await File.ReadAllTextAsync(_configPath), _jsonSerializerOptions);
 
-	if (c is null || string.IsNullOrWhiteSpace(c.Token))
+	if (config is null)
+	{
+		logger.LogCritical("Unable to load \"{Config}\"", _configPath);
+
+		await Task.Delay(_errorExitDelay);
+
+		Environment.Exit(13);
+	}
+
+	if (string.IsNullOrWhiteSpace(config.Token))
 	{
 		logger.LogCritical("Missing Token");
 
 		await Task.Delay(_errorExitDelay);
 
-		Environment.Exit(0);
+		Environment.Exit(13);
 	}
 
-	config = c;
+	if (config.Interval.TotalSeconds < _minInterval)
+	{
+		logger.LogCritical("The interval must be equal or greater than {MinValue} seconds", _minInterval);
+
+		await Task.Delay(_errorExitDelay);
+
+		Environment.Exit(13);
+	}
 }
 catch (FileNotFoundException ex)
 {
@@ -56,9 +73,9 @@ catch (JsonException ex)
 
 	return;
 }
-catch
+catch (Exception ex)
 {
-	logger.LogCritical("Unable to read token from \"{Config}\"", _configPath);
+	logger.LogCritical(ex, "Unable to read token from \"{Config}\"", _configPath);
 
 	await Task.Delay(_errorExitDelay);
 
