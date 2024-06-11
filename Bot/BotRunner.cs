@@ -42,7 +42,7 @@ namespace Bot
 				{
 					_logger.LogInformation("Checking for notifications...");
 
-					bool found = false;
+					int found = 0;
 
 					try
 					{
@@ -62,7 +62,7 @@ namespace Bot
 						{
 							if (DateTime.TryParse(nav.SelectSingleNode(".//pubDate", manager)?.Value, out DateTime result) && result > last)
 							{
-								found = true;
+								found++;
 
 								string? dub = nav.SelectSingleNode(".//title", manager)?.Value is string title ? DubRegex().Match(title).Groups.Values.ElementAtOrDefault(1)?.Value : null;
 
@@ -145,9 +145,9 @@ namespace Bot
 						_logger.LogWarning(ex, "Failed to load RSS feed");
 					}
 
-					if (found)
+					if (found > 0)
 					{
-						_logger.LogInformation("Found notifications");
+						_logger.LogInformation("Found {Count} notification(s)", found);
 					}
 					else
 					{
