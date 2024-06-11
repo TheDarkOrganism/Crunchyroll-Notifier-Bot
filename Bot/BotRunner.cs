@@ -34,133 +34,126 @@ namespace Bot
 			{
 				using PeriodicTimer timer = new(config.Interval);
 
-				try
+				XmlNamespaceManager? manager = null;
+
+				DateTime last = DateTime.Now;
+
+				while (await timer.WaitForNextTickAsync())
 				{
-					XmlNamespaceManager? manager = null;
+					_logger.LogInformation("Checking for notifications...");
 
-					DateTime last = DateTime.Now;
+					bool found = false;
 
-					while (await timer.WaitForNextTickAsync())
+					try
 					{
-						_logger.LogInformation("Checking for notifications...");
+						XPathNavigator navigator = new XPathDocument("http://feeds.feedburner.com/crunchyroll/rss/anime").CreateNavigator();
 
-						bool found = false;
-
-						try
+						if (manager is null)
 						{
-							XPathNavigator navigator = new XPathDocument("http://feeds.feedburner.com/crunchyroll/rss/anime").CreateNavigator();
+							manager = new(navigator.NameTable);
 
-							if (manager is null)
+							manager.AddNamespace("media", "http://search.yahoo.com/mrss/");
+							manager.AddNamespace("crunchyroll", "http://www.crunchyroll.com/rss");
+						}
+
+						_logger.LogDebug("Last = {Last}", last);
+
+						foreach (XPathNavigator nav in navigator.Select("//item").OfType<XPathNavigator>().Reverse())
+						{
+							if (DateTime.TryParse(nav.SelectSingleNode(".//pubDate", manager)?.Value, out DateTime result) && result > last)
 							{
-								manager = new(navigator.NameTable);
+								found = true;
 
-								manager.AddNamespace("media", "http://search.yahoo.com/mrss/");
-								manager.AddNamespace("crunchyroll", "http://www.crunchyroll.com/rss");
-							}
+								string? dub = nav.SelectSingleNode(".//title", manager)?.Value is string title ? DubRegex().Match(title).Groups.Values.ElementAtOrDefault(1)?.Value : null;
 
-							_logger.LogDebug("Last = {Last}", last);
+								_logger.LogTrace("Dub = {Dub}", dub);
 
-							foreach (XPathNavigator nav in navigator.Select("//item").OfType<XPathNavigator>().Reverse())
-							{
-								if (DateTime.TryParse(nav.SelectSingleNode(".//pubDate", manager)?.Value, out DateTime result) && result > last)
+								if (nav.SelectSingleNode(".//link")?.Value is string url && nav.SelectSingleNode(".//crunchyroll:seriesTitle", manager)?.Value is string seriesTitle)
 								{
-									found = true;
+									string showText = $"{seriesTitle} {(string.IsNullOrWhiteSpace(dub) ? string.Empty : $"({dub})")}";
 
-									string? dub = nav.SelectSingleNode(".//title", manager)?.Value is string title ? DubRegex().Match(title).Groups.Values.ElementAtOrDefault(1)?.Value : null;
+									_logger.LogTrace("Title = {ShowText}", showText);
 
-									_logger.LogTrace("Dub = {Dub}", dub);
+									int? episode = nav.SelectSingleNode(".//crunchyroll:episodeNumber", manager)?.ValueAsInt;
 
-									if (nav.SelectSingleNode(".//link")?.Value is string url && nav.SelectSingleNode(".//crunchyroll:seriesTitle", manager)?.Value is string seriesTitle)
+									_logger.LogTrace("Episode = {Episode}", episode);
+
+									int? season = nav.SelectSingleNode(".//crunchyroll:season", manager)?.ValueAsInt;
+
+									_logger.LogTrace("Season = {Season}", season);
+
+									string? thumbnail = nav.SelectSingleNode(".//enclosure")?.GetAttribute("url", string.Empty)?.Replace("_thumb", "_full");
+
+									_logger.LogTrace("Thumbnail = {Thumbnail}", thumbnail);
+
+									string description = nav.SelectSingleNode(".//description")?.Value ?? string.Empty;
+
+									description = description[(description.LastIndexOf('>') + 1)..];
+
+									_logger.LogTrace("Description = {Description}", description);
+
+									DiscordEmbedBuilder builder = new()
 									{
-										string showText = $"{seriesTitle} {(string.IsNullOrWhiteSpace(dub) ? string.Empty : $"({dub})")}";
+										ImageUrl = thumbnail ?? string.Empty,
+										Description = description,
+										Title = showText,
+										Timestamp = result,
+										Url = url
+									};
 
-										_logger.LogTrace("Title = {ShowText}", showText);
+									if (season is not null)
+									{
+										_ = builder.AddField("Season", season.ToString(), true);
+									}
 
-										int? episode = nav.SelectSingleNode(".//crunchyroll:episodeNumber", manager)?.ValueAsInt;
+									_ = builder.AddField("Episode", episode.ToString(), true);
 
-										_logger.LogTrace("Episode = {Episode}", episode);
-
-										int? season = nav.SelectSingleNode(".//crunchyroll:season", manager)?.ValueAsInt;
-
-										_logger.LogTrace("Season = {Season}", season);
-
-										string? thumbnail = nav.SelectSingleNode(".//enclosure")?.GetAttribute("url", string.Empty)?.Replace("_thumb", "_full");
-
-										_logger.LogTrace("Thumbnail = {Thumbnail}", thumbnail);
-
-										string description = nav.SelectSingleNode(".//description")?.Value ?? string.Empty;
-
-										description = description[(description.LastIndexOf('>') + 1)..];
-
-										_logger.LogTrace("Description = {Description}", description);
-
-										DiscordEmbedBuilder builder = new()
+									foreach (DiscordGuild guild in client.Guilds.Values)
+									{
+										foreach ((ulong id, DiscordChannel channel) in guild.Channels)
 										{
-											ImageUrl = thumbnail ?? string.Empty,
-											Description = description,
-											Title = showText,
-											Timestamp = result,
-											Url = url
-										};
-
-										if (season is not null)
-										{
-											_ = builder.AddField("Season", season.ToString(), true);
-										}
-
-										_ = builder.AddField("Episode", episode.ToString(), true);
-
-										foreach (DiscordGuild guild in client.Guilds.Values)
-										{
-											foreach ((ulong id, DiscordChannel channel) in guild.Channels)
+											foreach (DiscordOverwrite channelOverride in channel.PermissionOverwrites)
 											{
-												foreach (DiscordOverwrite channelOverride in channel.PermissionOverwrites)
+												if (channelOverride.Allowed == Permissions.SendMessages && channelOverride.Type == OverwriteType.Member && (await channelOverride.GetMemberAsync()) == client.CurrentUser)
 												{
-													if (channelOverride.Allowed == Permissions.SendMessages && channelOverride.Type == OverwriteType.Member && (await channelOverride.GetMemberAsync()) == client.CurrentUser)
+													try
 													{
-														try
-														{
-															_logger.LogDebug("Sending notification to {Name}@{ID}", channel.Name, id);
+														_logger.LogDebug("Sending notification to {Name}@{ID}", channel.Name, id);
 
-															await channel.SendMessageAsync(builder);
-														}
-														catch
-														{
-															_logger.LogDebug("Uanable to find notify channel with id {ID}", id);
-														}
-
-														break;
+														await channel.SendMessageAsync(builder);
 													}
+													catch
+													{
+														_logger.LogDebug("Uanable to find notify channel with id {ID}", id);
+													}
+
+													break;
 												}
 											}
 										}
 									}
-
-									last = result;
-
-									_logger.LogDebug("Updated Last = {Last}", last);
 								}
+
+								last = result;
+
+								_logger.LogDebug("Updated Last = {Last}", last);
 							}
 						}
-						catch (Exception ex)
-						{
-							_logger.LogWarning(ex, "Failed to load RSS feed");
-						}
-
-						if (found)
-						{
-							_logger.LogInformation("Found notifications");
-						}
-						else
-						{
-							_logger.LogInformation("No notifications found");
-						}
-
 					}
-				}
-				catch (Exception ex)
-				{
-					_logger.LogCritical(ex, "The main loop failed.");
+					catch (Exception ex)
+					{
+						_logger.LogWarning(ex, "Failed to load RSS feed");
+					}
+
+					if (found)
+					{
+						_logger.LogInformation("Found notifications");
+					}
+					else
+					{
+						_logger.LogInformation("No notifications found");
+					}
+
 				}
 			};
 		}
