@@ -3,7 +3,7 @@ using Bot.Converters;
 
 const string _configPath = "./Config.json";
 TimeSpan _errorExitDelay = TimeSpan.FromSeconds(30);
-const int _minInterval = 10;
+const double _minInterval = 10;
 
 JsonSerializerOptions _jsonSerializerOptions = new()
 {
