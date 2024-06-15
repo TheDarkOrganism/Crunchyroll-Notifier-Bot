@@ -8,19 +8,29 @@ namespace Bot
 {
 	internal sealed partial class BotRunner : IDisposable
 	{
+		#region Member Variables
+
 		private readonly ILogger<BotRunner> _logger;
 		private readonly DiscordClient _client;
 
 		private bool _isRunning = false;
 
+		#endregion
+
 		public BotRunner(Config config)
 		{
+			#region Setup Logger
+
 			LogLevel logLevel = config.LogLevel;
 
 			using (ILoggerFactory loggerFactory = LoggerFactory.Create(builder => builder.AddConsole().SetMinimumLevel(logLevel)))
 			{
 				_logger = loggerFactory.CreateLogger<BotRunner>();
 			}
+
+			#endregion
+
+			#region Setup Client
 
 			_client = new(new()
 			{
@@ -38,6 +48,8 @@ namespace Bot
 
 				DateTime last = DateTime.Now;
 
+				#region Main Loop
+
 				while (await timer.WaitForNextTickAsync())
 				{
 					_logger.LogInformation("Checking for notifications...");
@@ -46,6 +58,8 @@ namespace Bot
 
 					try
 					{
+						#region Read RSS Feed
+
 						XPathNavigator navigator = new XPathDocument("http://feeds.feedburner.com/crunchyroll/rss/anime").CreateNavigator();
 
 						if (manager is null)
@@ -56,7 +70,11 @@ namespace Bot
 							manager.AddNamespace("crunchyroll", "http://www.crunchyroll.com/rss");
 						}
 
+						#endregion
+
 						_logger.LogDebug("Last = {Last}", last);
+
+						#region Read RSS Data
 
 						foreach (XPathNavigator nav in navigator.Select("//item").OfType<XPathNavigator>().Reverse())
 						{
@@ -92,6 +110,8 @@ namespace Bot
 
 									_logger.LogTrace("Description = {Description}", description);
 
+									#region Create Discord Embed
+
 									DiscordEmbedBuilder builder = new()
 									{
 										ImageUrl = thumbnail ?? string.Empty,
@@ -107,6 +127,10 @@ namespace Bot
 									}
 
 									_ = builder.AddField("Episode", episode.ToString(), true);
+
+									#endregion
+
+									#region Send Messages
 
 									foreach (DiscordGuild guild in client.Guilds.Values)
 									{
@@ -132,6 +156,8 @@ namespace Bot
 											}
 										}
 									}
+
+									#endregion
 								}
 
 								last = result;
@@ -139,6 +165,8 @@ namespace Bot
 								_logger.LogDebug("Updated Last = {Last}", last);
 							}
 						}
+
+						#endregion
 					}
 					catch (Exception ex)
 					{
@@ -155,7 +183,11 @@ namespace Bot
 					}
 
 				}
+
+				#endregion
 			};
+
+			#endregion
 		}
 
 		[GeneratedRegex("\\(([A-Za-z\\-]+) Dub\\)")]

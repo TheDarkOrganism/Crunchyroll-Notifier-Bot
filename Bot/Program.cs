@@ -1,6 +1,8 @@
 ﻿using Bot;
 using Bot.Converters;
 
+#region Constant Variables
+
 const string _configPath = "./Config.json";
 TimeSpan _errorExitDelay = TimeSpan.FromSeconds(30);
 const double _minInterval = 10;
@@ -13,6 +15,10 @@ JsonSerializerOptions _jsonSerializerOptions = new()
 	}
 };
 
+#endregion
+
+#region Setup Error Logger
+
 ILogger<Program> logger;
 
 using (ILoggerFactory loggerFactory = LoggerFactory.Create(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Critical)))
@@ -20,11 +26,17 @@ using (ILoggerFactory loggerFactory = LoggerFactory.Create(builder => builder.Ad
 	logger = loggerFactory.CreateLogger<Program>();
 }
 
+#endregion
+
+#region Load Config
+
 Config? config;
 
 try
 {
 	config = JsonSerializer.Deserialize<Config>(await File.ReadAllTextAsync(_configPath), _jsonSerializerOptions);
+
+	#region Check for config format errors
 
 	if (config is null)
 	{
@@ -52,6 +64,8 @@ try
 
 		Environment.Exit(13);
 	}
+
+	#endregion
 }
 catch (FileNotFoundException ex)
 {
@@ -84,8 +98,14 @@ catch (Exception ex)
 	return;
 }
 
+#endregion
+
+#region Run Bot
+
 using BotRunner botRunner = new(config);
 
 await botRunner.RunAsync();
 
 await Task.Delay(-1);
+
+#endregion
