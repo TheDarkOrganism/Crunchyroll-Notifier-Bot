@@ -56,6 +56,8 @@ namespace Bot
 
 					int found = 0;
 
+					DateTime lastOffset = last.AddHours(2);
+
 					try
 					{
 						#region Read RSS Feed
@@ -78,7 +80,7 @@ namespace Bot
 
 						foreach (XPathNavigator nav in navigator.Select("//item").OfType<XPathNavigator>().Reverse())
 						{
-							if (DateTime.TryParse(nav.SelectSingleNode(".//pubDate", manager)?.Value, out DateTime result) && result > last)
+							if (DateTime.TryParse(nav.SelectSingleNode(".//pubDate", manager)?.Value, out DateTime result) && result > last && result <= lastOffset)
 							{
 								found++;
 
