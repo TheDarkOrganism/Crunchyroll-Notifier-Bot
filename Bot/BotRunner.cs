@@ -42,9 +42,7 @@ namespace Bot
 
 			_client.GuildDownloadCompleted += async (client, readArgs) =>
 			{
-				TimeSpan interval = config.Interval;
-
-				using PeriodicTimer timer = new(interval);
+				using PeriodicTimer timer = new(config.Interval);
 
 				XmlNamespaceManager? manager = null;
 
@@ -58,7 +56,7 @@ namespace Bot
 
 					int found = 0;
 
-					DateTime lastOffset = last + interval;
+					DateTime lastOffset = last.AddHours(2);
 
 					try
 					{
